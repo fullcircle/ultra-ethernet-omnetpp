@@ -1,78 +1,149 @@
 #
-# Makefile for Ultra Ethernet OMNeT++ Simulation
+# OMNeT++/OMNEST Makefile for ultraethernet_sim
+#
+# This file was generated with the command:
+#  opp_makemake -f --deep -o ultraethernet_sim -I/mnt/d/omnetpp-6.2.0/inet4.5/src -L/mnt/d/omnetpp-6.2.0/inet4.5/src -lINET_dbg
 #
 
-# Compiler and flags
-CXX = g++
-CXXFLAGS = -std=c++17 -O3 -DNDEBUG -MMD -MP -MF $(@:.o=.d)
+# Name of target to be created (-o option)
+TARGET_DIR = .
+TARGET_NAME = ultraethernet_sim$(D)
+TARGET = $(TARGET_NAME)$(EXE_SUFFIX)
+TARGET_FILES = $(TARGET_DIR)/$(TARGET)
 
-# OMNeT++ configuration
-OMNETPP_INCL_DIR = $(OMNETPP_ROOT)/include
-OMNETPP_LIB_DIR = $(OMNETPP_ROOT)/lib
+# User interface (uncomment one) (-u option)
+USERIF_LIBS = $(ALL_ENV_LIBS) # that is, $(QTENV_LIBS) $(CMDENV_LIBS)
+#USERIF_LIBS = $(CMDENV_LIBS)
+#USERIF_LIBS = $(QTENV_LIBS)
 
-# INET Framework (if used)
-INET_PROJ = $(INET_ROOT)
-INET_LIB = -L$(INET_PROJ)/src -lINET$(DBG_SUFFIX)
+# C++ include paths (with -I)
+INCLUDE_PATH = -I/mnt/d/omnetpp-6.2.0/inet4.5/src
 
-# Include paths
-INCLUDE_PATH = -I. -I$(OMNETPP_INCL_DIR) -I$(INET_PROJ)/src
+# Additional object and library files to link with
+EXTRA_OBJS =
 
-# Libraries
-LIBS = $(INET_LIB) -loppenvir$(DBG_SUFFIX) -loppsim$(DBG_SUFFIX)
+# Additional libraries (-L, -l options)
+LIBS = $(LDFLAG_LIBPATH)/mnt/d/omnetpp-6.2.0/inet4.5/src  -lINET_dbg
 
-# Source files
-SOURCES = $(wildcard *.cc)
-OBJECTS = $(SOURCES:.cc=.o)
-HEADERS = $(wildcard *.h)
-MSG_FILES = $(wildcard *.msg)
-MSG_CC = $(MSG_FILES:.msg=_m.cc)
-MSG_H = $(MSG_FILES:.msg=_m.h)
+# Output directory
+PROJECT_OUTPUT_DIR = ../out
+PROJECTRELATIVE_PATH = ultra-ethernet-omnetpp
+O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
-# Target executable
-TARGET = ultraethernet_sim
+# Object files for local .cc, .msg and .sm files
+OBJS = \
+    $O/AIHPCApplication.o \
+    $O/INCProcessor.o \
+    $O/PerformanceAnalyzer.o \
+    $O/SwitchFabric.o \
+    $O/SwitchPort.o \
+    $O/UETTransport.o \
+    $O/UltraEthernetIP.o \
+    $O/UltraEthernetLink.o \
+    $O/UltraEthernetPhy.o \
+    $O/UltraEthernetMsg_m.o
 
-# Default target
-all: $(TARGET)
+# Message files
+MSGFILES = \
+    UltraEthernetMsg.msg
 
-# Message file compilation
+# SM files
+SMFILES =
+
+#------------------------------------------------------------------------------
+
+# Pull in OMNeT++ configuration (Makefile.inc)
+
+ifneq ("$(OMNETPP_CONFIGFILE)","")
+CONFIGFILE = $(OMNETPP_CONFIGFILE)
+else
+CONFIGFILE = $(shell opp_configfilepath)
+endif
+
+ifeq ("$(wildcard $(CONFIGFILE))","")
+$(error Config file '$(CONFIGFILE)' does not exist -- add the OMNeT++ bin directory to the path so that opp_configfilepath can be found, or set the OMNETPP_CONFIGFILE variable to point to Makefile.inc)
+endif
+
+include $(CONFIGFILE)
+
+# Simulation kernel and user interface libraries
+OMNETPP_LIBS = $(OPPMAIN_LIB) $(USERIF_LIBS) $(KERNEL_LIBS) $(SYS_LIBS)
+ifneq ($(PLATFORM),win32)
+LIBS += -Wl,-rpath,$(abspath /mnt/d/omnetpp-6.2.0/inet4.5/src)
+endif
+
+COPTS = $(CFLAGS) $(IMPORT_DEFINES)  $(INCLUDE_PATH) -I$(OMNETPP_INCL_DIR)
+MSGCOPTS = $(INCLUDE_PATH)
+SMCOPTS =
+
+# we want to recompile everything if COPTS changes,
+# so we store COPTS into $COPTS_FILE (if COPTS has changed since last build)
+# and make the object files depend on it
+COPTS_FILE = $O/.last-copts
+ifneq ("$(COPTS)","$(shell cat $(COPTS_FILE) 2>/dev/null || echo '')")
+  $(shell $(MKPATH) "$O")
+  $(file >$(COPTS_FILE),$(COPTS))
+endif
+
+#------------------------------------------------------------------------------
+# User-supplied makefile fragment(s)
+#------------------------------------------------------------------------------
+
+# Main target
+all: $(TARGET_FILES)
+
+$(TARGET_DIR)/% :: $O/%
+	@mkdir -p $(TARGET_DIR)
+	$(Q)$(LN) $< $@
+ifeq ($(TOOLCHAIN_NAME),clang-msabi)
+	-$(Q)-$(LN) $(<:%.dll=%.lib) $(@:%.dll=%.lib) 2>/dev/null
+
+$O/$(TARGET_NAME).pdb: $O/$(TARGET)
+endif
+
+$O/$(TARGET): $(OBJS)  $(wildcard $(EXTRA_OBJS)) Makefile $(CONFIGFILE)
+	@$(MKPATH) $O
+	@echo Creating executable: $@
+	$(Q)$(CXX) $(LDFLAGS) -o $O/$(TARGET) $(OBJS) $(EXTRA_OBJS) $(AS_NEEDED_OFF) $(WHOLE_ARCHIVE_ON) $(LIBS) $(WHOLE_ARCHIVE_OFF) $(OMNETPP_LIBS)
+
+.PHONY: all clean cleanall depend msgheaders smheaders
+
+# disabling all implicit rules
+.SUFFIXES :
+.PRECIOUS : %_m.h %_m.cc
+
+$O/%.o: %.cc $(COPTS_FILE) | msgheaders smheaders
+	@$(MKPATH) $(dir $@)
+	$(qecho) "$<"
+	$(Q)$(CXX) -c $(CXXFLAGS) $(COPTS) -o $@ $<
+
 %_m.cc %_m.h: %.msg
-	opp_msgc -s _m.cc -h _m.h $<
+	$(qecho) MSGC: $<
+	$(Q)$(MSGC) -s _m.cc -MD -MP -MF $O/$(basename $<)_m.h.d $(MSGCOPTS) $?
 
-# Object file compilation
-%.o: %.cc $(MSG_H)
-	$(CXX) $(CXXFLAGS) $(INCLUDE_PATH) -c $< -o $@
+%_sm.cc %_sm.h: %.sm
+	$(qecho) SMC: $<
+	$(Q)$(SMC) -c++ -suffix cc $(SMCOPTS) $?
 
-# Link executable
-$(TARGET): $(OBJECTS) $(MSG_CC:.cc=.o)
-	$(CXX) -o $@ $^ $(LIBS) -Wl,-rpath,$(OMNETPP_LIB_DIR)
+msgheaders: $(MSGFILES:.msg=_m.h)
 
-# Clean
+smheaders: $(SMFILES:.sm=_sm.h)
+
 clean:
-	rm -f $(TARGET) *.o *.d *_m.cc *_m.h
+	$(qecho) Cleaning $(TARGET)
+	$(Q)-rm -rf $O
+	$(Q)-rm -f $(TARGET_FILES)
+	$(Q)-rm -f $(call opp_rwildcard, . , *_m.cc *_m.h *_sm.cc *_sm.h)
 
-# Install (copy to results directory)
-install: $(TARGET)
-	mkdir -p results
-	cp $(TARGET) omnetpp.ini results/
+cleanall:
+	$(Q)$(CLEANALL_COMMAND)
+	$(Q)-rm -rf $(PROJECT_OUTPUT_DIR)
 
-# Run simulation
-run: $(TARGET)
-	./$(TARGET) -u Cmdenv -c UltraEthernet_1K
+help:
+	@echo "$$HELP_SYNOPSYS"
+	@echo "$$HELP_TARGETS"
+	@echo "$$HELP_VARIABLES"
+	@echo "$$HELP_EXAMPLES"
 
-# Run performance comparison
-benchmark: $(TARGET)
-	./$(TARGET) -u Cmdenv -c Performance_Comparison
-
-# Run parameter sweep
-sweep: $(TARGET)
-	./$(TARGET) -u Cmdenv -c Parameter_Sweep
-
-# Parallel execution (MPI)
-run-parallel: $(TARGET)
-	mpirun -np 4 ./$(TARGET) -u Cmdenv -c UltraEthernet_10K \
-		--parsim-communications-class=cMPICommunications
-
-.PHONY: all clean install run benchmark sweep run-parallel
-
-# Include dependency files
--include $(OBJECTS:.o=.d)
+# include all dependencies
+-include $(OBJS:%=%.d) $(MSGFILES:%.msg=$O/%_m.h.d)

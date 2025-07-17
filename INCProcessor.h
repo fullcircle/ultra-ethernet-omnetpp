@@ -6,51 +6,65 @@
 #define __INC_PROCESSOR_H
 
 #include <omnetpp.h>
+#include <deque>
 #include "UltraEthernetMsg_m.h"
 
 using namespace omnetpp;
 
-class INCProcessor : public cSimpleModule {
-public:
-    enum CollectiveType {
-        ALLREDUCE = 0,
-        BROADCAST = 1,
-        REDUCE = 2,
-        ALLGATHER = 3,
-        SCATTER = 4
-    };
-    
-    enum ReductionOp {
-        SUM = 0,
-        MAX = 1,
-        MIN = 2,
-        PROD = 3,
-        AND = 4,
-        OR = 5
-    };
+enum CollectiveType {
+    ALLREDUCE = 0,
+    ALLGATHER = 1,
+    BROADCAST = 2,
+    REDUCE_SCATTER = 3
+};
 
+enum ReductionOperation {
+    SUM = 0,
+    MAX = 1,
+    MIN = 2,
+    PROD = 3
+};
+
+struct INCOperation {
+    INCPacket* packet;
+    simtime_t startTime;
+    CollectiveType collectiveType;
+    int participantCount;
+    ReductionOperation reductionOp;
+};
+
+class INCProcessor : public cSimpleModule {
 private:
+    // Configuration parameters
     bool enabled;
-    double processingLatency;
+    simtime_t processingLatency;
     int maxConcurrentOperations;
+    int bufferSize;
     
-    // Active collective operations
-    struct CollectiveOperation {
-        uint32_t operationId;
-        CollectiveType type;
-        ReductionOp reductionOp;
-        uint32_t expectedParticipants;
-        uint32_t receivedPackets;
-        std::vector<double> accumulatedData;
-        simtime_t startTime;
-    };
-    
-    std::map<uint32_t, CollectiveOperation> activeOperations;
-    
-    // Performance metrics
-    simsignal_t incLatency;
-    simsignal_t incThroughput;
+    // Statistics
     simsignal_t operationsProcessed;
+    simsignal_t operationsDropped;
+    simsignal_t processingLatencySignal;
+    simsignal_t bufferUtilization;
+    
+    // Internal state
+    cMessage *processingTimer;
+    std::deque<INCOperation> operationQueue;
+    int currentBufferSize;
+    int activeOperations;
+    
+    // Processing functions
+    void processIncomingPacket(UETPacket *pkt);
+    bool canProcessOperation(INCPacket *pkt);
+    void scheduleOperation(INCPacket *pkt);
+    void processNextOperation();
+    
+    // Collective operation processing
+    INCPacket* processCollectiveOperation(const INCOperation& op);
+    INCPacket* processAllReduce(const INCOperation& op, INCPacket* result);
+    INCPacket* processAllGather(const INCOperation& op, INCPacket* result);
+    INCPacket* processBroadcast(const INCOperation& op, INCPacket* result);
+    INCPacket* processReduceScatter(const INCOperation& op, INCPacket* result);
     
 public:
     INCProcessor();
@@ -60,18 +74,6 @@ protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
     virtual void finish() override;
-    
-    // Core INC functionality
-    void processCollectivePacket(INCPacket *pkt);
-    void performReduction(CollectiveOperation &op, const std::vector<double> &data);
-    void generateOutputPackets(CollectiveOperation &op);
-    
-    // Reduction operations
-    double performReductionOp(ReductionOp op, const std::vector<double> &values);
-    
-    // Performance optimization
-    bool canProcessOperation(CollectiveType type);
-    void scheduleOperationCompletion(uint32_t operationId);
 };
 
 #endif

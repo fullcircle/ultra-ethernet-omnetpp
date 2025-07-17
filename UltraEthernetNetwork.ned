@@ -2,8 +2,6 @@
 // UltraEthernetNetwork.ned - Network topology definitions
 //
 
-package ultraethernet;
-
 import inet.networklayer.configurator.ipv4.Ipv4NetworkConfigurator;
 import inet.visualizer.integrated.IntegratedCanvasVisualizer;
 
@@ -31,7 +29,7 @@ module UltraEthernetHost {
             @display("p=200,150");
         }
         
-        network: UltraEthernetIP {
+        networkLayer: UltraEthernetIP {
             @display("p=200,250");
         }
         
@@ -47,11 +45,11 @@ module UltraEthernetHost {
         app.transportOut --> transport.appIn;
         app.transportIn <-- transport.appOut;
         
-        transport.networkOut --> network.transportIn;
-        transport.networkIn <-- network.transportOut;
+        transport.networkOut --> networkLayer.transportIn;
+        transport.networkIn <-- networkLayer.transportOut;
         
-        network.linkOut --> link.networkIn;
-        network.linkIn <-- link.networkOut;
+        networkLayer.linkOut --> link.networkIn;
+        networkLayer.linkIn <-- link.networkOut;
         
         link.phyOut --> phy.linkIn;
         link.phyIn <-- phy.linkOut;
@@ -126,7 +124,7 @@ network UltraEthernetCluster {
             @display("p=100,100,m,20,100,100");
         }
         
-        switches[]: UltraEthernetSwitch {
+        switches[numNodes/switchRadix]: UltraEthernetSwitch {
             numPorts = switchRadix;
         }
         

@@ -1,62 +1,66 @@
 //
-// AIHPCApplication.h - AI/HPC Application Layer
+// AIHPCApplication.h - AI/HPC Application Implementation
 //
 
-#ifndef __AI_HPC_APPLICATION_H  
-#define __AI_HPC_APPLICATION_H
+#ifndef __AIHPC_APPLICATION_H
+#define __AIHPC_APPLICATION_H
 
 #include <omnetpp.h>
 #include "UltraEthernetMsg_m.h"
 
 using namespace omnetpp;
 
-class AIHPCApplication : public cSimpleModule {
-public:
-    enum WorkloadType {
-        AI_TRAINING = 0,
-        AI_INFERENCE = 1,
-        HPC_SIMULATION = 2,
-        DISTRIBUTED_DATABASE = 3
-    };
-    
-    enum CommunicationPattern {
-        ALLREDUCE = 0,
-        ALLGATHER = 1,
-        BROADCAST = 2,
-        POINT_TO_POINT = 3,
-        PARAMETER_SERVER = 4
-    };
+enum WorkloadType {
+    AI_TRAINING,
+    AI_INFERENCE,
+    HPC_SIMULATION,
+    DISTRIBUTED_DATABASE
+};
 
+enum CommunicationPattern {
+    ALLREDUCE,
+    ALLGATHER,
+    BROADCAST,
+    POINT_TO_POINT,
+    PARAMETER_SERVER
+};
+
+class AIHPCApplication : public cSimpleModule {
 private:
-    // Configuration
+    // Configuration parameters
     WorkloadType workloadType;
-    CommunicationPattern communicationPattern;
-    int jobSize;                    // Number of participating nodes
-    double messageSize;             // Average message size
-    double communicationIntensity;  // Communication frequency
+    CommunicationPattern commPattern;
+    int messageSize;
+    int jobSize;
+    double communicationIntensity;
+    simtime_t trafficStartTime;
+    double trafficRate;
     
-    // Job management
-    struct Job {
-        uint64_t jobId;
-        simtime_t startTime;
-        simtime_t deadline;
-        std::vector<int> participatingNodes;
-        int completedOperations;
-        int totalOperations;
-        bool isCompleted;
-    };
-    
-    std::map<uint64_t, Job> activeJobs;
-    uint64_t nextJobId;
-    
-    // Performance measurement
-    simsignal_t jobCompletionTime;
+    // Statistics
+    simsignal_t messagesSent;
+    simsignal_t messagesReceived;
     simsignal_t throughput;
-    simsignal_t communicationOverhead;
+    simsignal_t latency;
     
-    // Timers
-    cMessage *jobGenerationTimer;
-    cMessage *communicationTimer;
+    // Internal state
+    cMessage *trafficTimer;
+    int sequenceNumber;
+    std::map<int, simtime_t> sentTimes;
+    
+    // Workload generation
+    void generateTraffic();
+    void generateAITrainingWorkload();
+    void generateAIInferenceWorkload();
+    void generateHPCSimulationWorkload();
+    
+    // Message handling
+    void sendMessage(int dest, int size, const char* type);
+    void processReceivedMessage(UETPacket* pkt);
+    
+    // Collective operations
+    void initiateAllReduce();
+    void initiateAllGather();
+    void initiateBroadcast();
     
 public:
     AIHPCApplication();
@@ -66,28 +70,6 @@ protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
     virtual void finish() override;
-    
-    // Workload generation
-    void generateNewJob();
-    void scheduleNextJob();
-    
-    // Communication patterns
-    void executeAllReduce(uint64_t jobId);
-    void executeAllGather(uint64_t jobId);
-    void executeBroadcast(uint64_t jobId);
-    void executePointToPoint(uint64_t jobId);
-    void executeParameterServer(uint64_t jobId);
-    
-    // AI-specific workloads
-    void generateAITrainingWorkload();
-    void generateAIInferenceWorkload();
-    
-    // HPC-specific workloads
-    void generateHPCSimulationWorkload();
-    
-    // Performance measurement
-    void recordJobCompletion(uint64_t jobId);
-    void updateThroughputMetrics();
 };
 
 #endif

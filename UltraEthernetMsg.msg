@@ -5,10 +5,16 @@
 packet UETPacket {
     // Common UET header fields
     uint32_t flowId;
-    uint32_t sequenceNumber;
+    uint32_t sequenceNum;
     uint8_t sublayerType;  // 0=Security, 1=PDS, 2=MSS, 3=CMS
     uint16_t pathId;       // For packet spraying
     uint64_t timestamp;    // High-precision timestamp
+    
+    // Transport layer fields
+    uint8_t transportType; // DATA=0, ACK=1, NACK=2
+    uint32_t destAddr;
+    uint32_t srcAddr;
+    uint16_t sprayPath;
     
     // Security sublayer fields
     bool encrypted = false;

@@ -42,7 +42,7 @@ void UltraEthernetPhy::handleMessage(cMessage *msg) {
         if (msg->getArrivalGate()->isName("linkIn")) {
             // Packet from link layer - transmit
             processTransmission(pkt);
-        } else {
+        } else if (msg->getArrivalGate()->isName("ethIn")) {
             // Packet from network - receive
             if (simulateChannelErrors(pkt)) {
                 send(pkt, "linkOut");
@@ -51,6 +51,9 @@ void UltraEthernetPhy::handleMessage(cMessage *msg) {
                 emit(uncorrectableErrors, 1);
                 delete pkt;
             }
+        } else {
+            // Unknown gate
+            delete pkt;
         }
     }
 }
@@ -107,7 +110,13 @@ void UltraEthernetPhy::scheduleNextTransmission() {
         cPacket *pkt = transmissionQueue.front();
         transmissionQueue.pop();
         
-        send(pkt, "ethOut", 0);  // Send on first ethernet port
+        // Send on first ethernet port if available, otherwise drop
+        if (gateSize("ethOut") > 0) {
+            send(pkt, "ethOut", 0);
+        } else {
+            // No external connections, drop packet
+            delete pkt;
+        }
         
         if (!transmissionQueue.empty()) {
             cPacket *nextPkt = transmissionQueue.front();
