@@ -22,6 +22,7 @@ Release/
 .last-copts
 .tkenvrc
 .qtenvrc
+updated_omnet_UEC.txt
 
 # Results and logs
 results/
