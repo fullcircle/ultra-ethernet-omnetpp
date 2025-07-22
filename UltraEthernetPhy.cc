@@ -40,12 +40,12 @@ void UltraEthernetPhy::handleMessage(cMessage *msg) {
         cPacket *pkt = check_and_cast<cPacket*>(msg);
         
         if (msg->getArrivalGate()->isName("linkIn")) {
-            // Packet from link layer - transmit
+            // Packet from link layer - transmit to network
             processTransmission(pkt);
-        } else if (msg->getArrivalGate()->isName("ethIn")) {
-            // Packet from network - receive
+        } else if (strstr(msg->getArrivalGate()->getName(), "ethg") != nullptr) {
+            // Packet from network - receive and send up to link layer
             if (simulateChannelErrors(pkt)) {
-                send(pkt, "linkOut");
+                send(pkt, "linkOut");  // Send UP to link layer
             } else {
                 // Packet dropped due to uncorrectable errors
                 emit(uncorrectableErrors, 1);
@@ -111,17 +111,19 @@ void UltraEthernetPhy::scheduleNextTransmission() {
         transmissionQueue.pop();
         
         // Send on first ethernet port if available, otherwise drop
-        if (gateSize("ethOut") > 0) {
-            send(pkt, "ethOut", 0);
+        if (gateSize("ethg") > 0) {
+            send(pkt, "ethg$o", 0);
         } else {
             // No external connections, drop packet
             delete pkt;
         }
         
+        // Schedule next transmission if there are more packets
         if (!transmissionQueue.empty()) {
             cPacket *nextPkt = transmissionQueue.front();
             double bits = nextPkt->getBitLength();
             simtime_t txDelay = bits / linkSpeed;
+            
             scheduleAt(simTime() + txDelay, transmissionTimer);
         }
     }

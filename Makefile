@@ -139,9 +139,74 @@ cleanall:
 	$(Q)$(CLEANALL_COMMAND)
 	$(Q)-rm -rf $(PROJECT_OUTPUT_DIR)
 
+# Additional targets for scalable testing
+run-multi: 
+	@echo "Running working multi-host tests..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c TwoHost_Direct -f working_multi_test.ini
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_4 -f working_multi_test.ini
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_16 -f working_multi_test.ini
+
+run-working:
+	@echo "Running verified working test..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c General -f test_full.ini --sim-time-limit=10s
+
+run-stress:
+	@echo "Running stress test..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_Stress -f working_multi_test.ini
+
+run-64:
+	@echo "Running 64-host large scale test..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_64 -f large_scale_test.ini
+
+run-100:
+	@echo "Running 100-host extreme scale test..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_100 -f large_scale_test.ini
+
+run-massive:
+	@echo "Running 256-host massive scale test..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_256 -f large_scale_test.ini
+
+# Topology-specific 1000-host tests
+run-leafspine-1000:
+	@echo "Running 1000-host Leaf-Spine topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c LeafSpine_1000 -f large_scale_test.ini
+
+run-dragonfly-1000:
+	@echo "Running 1000-host Dragonfly topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c Dragonfly_1000 -f large_scale_test.ini
+
+run-mesh-1000:
+	@echo "Running 1000-host Mesh topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c Mesh_1000 -f large_scale_test.ini
+
+run-torus-1000:
+	@echo "Running 1000-host Torus topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c Torus_1000 -f large_scale_test.ini
+
+run-all-topologies-1000:
+	@echo "Running all 1000-host topology tests..."
+	$(MAKE) run-leafspine-1000
+	$(MAKE) run-dragonfly-1000
+	$(MAKE) run-mesh-1000
+	$(MAKE) run-torus-1000
+
 help:
 	@echo "$$HELP_SYNOPSYS"
 	@echo "$$HELP_TARGETS"
+	@echo "Additional targets:"
+	@echo "  run-multi         Run working multi-host tests (2, 4, 16 hosts)"
+	@echo "  run-working       Run verified single host test"
+	@echo "  run-stress        Run stress test with high traffic"
+	@echo "  run-64            Run 64-host large scale test"
+	@echo "  run-100           Run 100-host extreme scale test"
+	@echo "  run-massive       Run 256-host massive scale test"
+	@echo ""
+	@echo "Topology-specific 1000-host tests:"
+	@echo "  run-leafspine-1000    Run 1000-host Leaf-Spine topology"
+	@echo "  run-dragonfly-1000    Run 1000-host Dragonfly topology"
+	@echo "  run-mesh-1000         Run 1000-host Mesh topology"
+	@echo "  run-torus-1000        Run 1000-host Torus topology"
+	@echo "  run-all-topologies-1000  Run all 1000-host topology tests"
 	@echo "$$HELP_VARIABLES"
 	@echo "$$HELP_EXAMPLES"
 

@@ -153,7 +153,7 @@ void UltraEthernetIP::initializeRoutingTable() {
         if (i != nodeIndex) {
             RoutingEntry entry;
             entry.destAddr = i;
-            entry.nextHops.push_back(i % 4);  // Simple hash-based routing
+            entry.nextHops.push_back(0);  // All traffic goes via first interface
             entry.metric = 1;
             entry.packetsForwarded = 0;
             entry.lastUsed = simTime();

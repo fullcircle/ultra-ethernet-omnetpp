@@ -1,0 +1,71 @@
+ Perfect! Now I can show you how to configure all the available topologies. Here's your complete topology
+  configuration guide:
+
+  🌐 Available Topology Configurations
+
+  Add these configurations to your .ini files:
+
+  1. Leaf-Spine Topology (Data Centers)
+
+  [Config LeafSpine_1000]
+  network = ScalableNetworks
+  **.topologyType = "LEAF_SPINE"
+  **.numNodes = 1000
+  **.numSpineSwitches = 8
+  **.hostsPerLeaf = 32
+  **.communicationPattern = "ALL_REDUCE"
+
+  2. Dragonfly Topology (HPC Clusters)
+
+  [Config Dragonfly_1000]
+  network = ScalableNetworks
+  **.topologyType = "DRAGONFLY"
+  **.numNodes = 1000
+  **.routersPerGroup = 16
+  **.hostsPerRouter = 8
+  **.globalConnections = 4
+  **.communicationPattern = "ALL_GATHER"
+
+  3. Mesh Topology (Full/Partial Mesh)
+
+  [Config Mesh_1000]
+  network = ScalableNetworks
+  **.topologyType = "MESH"
+  **.numNodes = 1000
+  **.fullMesh = false
+  **.meshDegree = 6
+  **.hostsPerSwitch = 16
+  **.communicationPattern = "ALL_TO_ALL"
+
+  4. Torus Topology (Scientific Computing)
+
+  [Config Torus_1000]
+  network = ScalableNetworks
+  **.topologyType = "TORUS_3D"
+  **.numNodes = 1000
+  **.dimensions = 3
+  **.wrapAround = true
+  **.communicationPattern = "NEIGHBOR_EXCHANGE"
+
+  🚀 Running Different Topologies
+
+  Add these to your Makefile:
+
+  run-leafspine-1000:
+        @echo "Running 1000-host Leaf-Spine topology..."
+        ./ultraethernet_sim_dbg -u Cmdenv -c LeafSpine_1000 -f large_scale_test.ini
+
+  run-dragonfly-1000:
+        @echo "Running 1000-host Dragonfly topology..."
+        ./ultraethernet_sim_dbg -u Cmdenv -c Dragonfly_1000 -f large_scale_test.ini
+
+  run-mesh-1000:
+        @echo "Running 1000-host Mesh topology..."
+        ./ultraethernet_sim_dbg -u Cmdenv -c Mesh_1000 -f large_scale_test.ini
+
+  run-torus-1000:
+        @echo "Running 1000-host Torus topology..."
+        ./ultraethernet_sim_dbg -u Cmdenv -c Torus_1000 -f large_scale_test.ini
+
+  This gives you 4 distinct network topologies to test Ultra Ethernet performance across different architectural
+  patterns used in AI/HPC environments!

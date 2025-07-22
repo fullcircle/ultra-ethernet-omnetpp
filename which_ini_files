@@ -1,0 +1,28 @@
+Essential .ini files:
+
+  - omnetpp.ini - Main configuration (basic 2-host test)
+  - large_scale_test.ini - Scalable configurations (64, 100, 256+ hosts)
+  - working_multi_test.ini - Multi-host tests (2, 4, 16 hosts)
+
+  Optional/Development files you can remove:
+
+  - simple.ini, demo.ini, simple_demo.ini - Basic demos
+  - test_full.ini, traffic_test.ini - Development testing
+  - scalable_test.ini, simple_scalable_test.ini - Early scaling attempts
+  - connected_test.ini, loopback_test.ini - Connection debugging
+  - real_connected_test.ini, debug_test.ini - Debug versions
+
+  Recommended cleanup:
+
+  Keep these 3 core files:
+  # Keep these
+  omnetpp.ini              # Basic 2-host test
+  large_scale_test.ini     # 64/100/256+ host scaling
+  working_multi_test.ini   # 2/4/16 host tests
+
+  # Remove the rest (optional)
+  rm simple.ini demo.ini simple_demo.ini test_full.ini traffic_test.ini scalable_test.ini simple_scalable_test.ini
+  connected_test.ini loopback_test.ini real_connected_test.ini debug_test.ini
+
+  The 3 essential files provide all the functionality you need for running Ultra Ethernet simulations from 2 hosts
+  up to 1000+ hosts.

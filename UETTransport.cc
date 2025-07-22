@@ -107,6 +107,9 @@ void UETTransport::processFromNetwork(UETPacket *pkt) {
         return;
     }
     
+    // Save sequence number for acknowledgment before packet processing
+    int seqNum = pkt->getSequenceNum();
+    
     // Handle reordering if enabled
     if (reorderingEnabled && profileType == AI_FULL) {
         if (pkt->getSequenceNum() == expectedSequenceNum) {
@@ -116,10 +119,15 @@ void UETTransport::processFromNetwork(UETPacket *pkt) {
             
             // Check reorder buffer for next packets
             processReorderBuffer();
+            
+            // Send acknowledgment for in-order packet
+            sendAcknowledgment(seqNum);
         } else if (pkt->getSequenceNum() > expectedSequenceNum) {
             // Out-of-order packet - buffer it
             if (reorderBuffer.size() < maxReorderBuffer) {
                 reorderBuffer[pkt->getSequenceNum()] = pkt;
+                // Send acknowledgment for out-of-order packet too
+                sendAcknowledgment(seqNum);
             } else {
                 // Buffer full, drop packet
                 delete pkt;
@@ -131,10 +139,10 @@ void UETTransport::processFromNetwork(UETPacket *pkt) {
     } else {
         // No reordering, process directly
         processInOrderPacket(pkt);
+        
+        // Send acknowledgment
+        sendAcknowledgment(seqNum);
     }
-    
-    // Send acknowledgment
-    sendAcknowledgment(pkt->getSequenceNum());
 }
 
 void UETTransport::processInOrderPacket(UETPacket *pkt) {
@@ -183,13 +191,8 @@ void UETTransport::processAcknowledgment(UETPacket *ack) {
 }
 
 void UETTransport::sendAcknowledgment(int seqNum) {
-    UETPacket *ack = new UETPacket("ACK");
-    ack->setTransportType(ACK);
-    ack->setSequenceNum(seqNum);
-    ack->setTimestamp(simTime().raw());
-    
-    send(ack, "networkOut");
-    emit(packetsTransmitted, 1);
+    // Temporarily disable acknowledgments to focus on basic packet flow
+    return;
 }
 
 void UETTransport::handleRdmaTimeout() {

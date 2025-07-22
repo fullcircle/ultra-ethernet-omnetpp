@@ -25,8 +25,4 @@ simple UltraEthernetPhy {
         input linkIn;
         output linkOut;
         inout ethg[] @labels(EtherFrame-conn);
-        
-        // For compatibility with the network definition
-        input ethIn[] @labels(EtherFrame-conn);
-        output ethOut[] @labels(EtherFrame-conn);
 }

@@ -1,0 +1,44 @@
+Perfect! To run 1,000+ hosts, you need to edit the .ini configuration files, specifically large_scale_test.ini.
+  Here's how:
+
+  Option 1: Add a new configuration section
+
+  Add this to large_scale_test.ini:
+
+  [Config MultiHost_1000]
+  network = MultiHostSimulation
+  description = "1000-host ultra-scale AI training"
+
+  **.numHosts = 1000
+  **.communicationPattern = "ALL_REDUCE"
+  **.jobSize = 1000
+  **.messageSize = 64MB
+  **.communicationIntensity = 0.99
+  **.trafficRate = 100Gbps
+
+  # For 1000+ nodes, you'll likely need MPI parallelization
+  **.parallelSimulation = true
+  **.numPartitions = 4
+
+  Option 2: Add a Makefile target
+
+  Then add to the Makefile:
+
+  run-1000:
+        @echo "Running 1000-host ultra-scale test..."
+        export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_1000 -f
+  large_scale_test.ini
+
+  Key parameters to adjust for 1000+ hosts:
+
+  - **.numHosts = 1000 - Number of hosts
+  - **.jobSize = 1000 - AI job participants
+  - **.messageSize = 64MB - Larger messages for efficiency
+  - **.parallelSimulation = true - Enable MPI parallelization
+  - **.numPartitions = 4 - Split simulation across cores
+
+  Files to edit:
+  1. large_scale_test.ini - Add the configuration section
+  2. Makefile - Add the run target (optional)
+
+  The simulation will automatically handle the topology scaling when you increase numHosts.

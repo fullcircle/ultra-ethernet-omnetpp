@@ -50,9 +50,10 @@ void AIHPCApplication::initialize() {
 void AIHPCApplication::handleMessage(cMessage *msg) {
     if (msg->isSelfMessage()) {
         if (msg == trafficTimer) {
+            EV << "AIHPCApplication: Traffic timer fired at " << simTime() << " for node " << getParentModule()->getIndex() << endl;
             generateTraffic();
-            // Schedule next traffic generation
-            scheduleAt(simTime() + 0.1, trafficTimer);
+            // Schedule next traffic generation (reduced frequency to avoid congestion)
+            scheduleAt(simTime() + 1.0, trafficTimer);
         }
     } else {
         UETPacket *pkt = check_and_cast<UETPacket*>(msg);
@@ -79,7 +80,10 @@ void AIHPCApplication::generateTraffic() {
 
 void AIHPCApplication::generateAITrainingWorkload() {
     // AI Training: periodic AllReduce operations
-    if (uniform(0, 1) < communicationIntensity) {
+    double random = uniform(0, 1);
+    EV << "AIHPCApplication: generateAITrainingWorkload - random=" << random << " intensity=" << communicationIntensity << endl;
+    if (random < communicationIntensity) {
+        EV << "AIHPCApplication: Initiating communication pattern " << commPattern << endl;
         switch (commPattern) {
             case ALLREDUCE:
                 initiateAllReduce();
@@ -93,6 +97,8 @@ void AIHPCApplication::generateAITrainingWorkload() {
             default:
                 initiateAllReduce();
         }
+    } else {
+        EV << "AIHPCApplication: Skipping communication due to intensity check" << endl;
     }
 }
 
@@ -119,6 +125,7 @@ void AIHPCApplication::generateHPCSimulationWorkload() {
 }
 
 void AIHPCApplication::sendMessage(int dest, int size, const char* type) {
+    EV << "AIHPCApplication: sendMessage called - dest=" << dest << " size=" << size << " type=" << type << endl;
     UETPacket *pkt = new UETPacket(type);
     pkt->setByteLength(size);
     pkt->setDestAddr(dest);
@@ -128,12 +135,23 @@ void AIHPCApplication::sendMessage(int dest, int size, const char* type) {
     
     sentTimes[pkt->getSequenceNum()] = simTime();
     
+    EV << "AIHPCApplication: Sending packet with seq=" << pkt->getSequenceNum() << " from=" << pkt->getSrcAddr() << " to=" << pkt->getDestAddr() << endl;
     send(pkt, "transportOut");
     emit(messagesSent, 1);
+    
+    // Also record scalar directly to ensure it's captured
+    recordScalar("messagesActuallySent", sequenceNumber);
+    EV << "AIHPCApplication: Message sent and statistics emitted" << endl;
 }
 
 void AIHPCApplication::processReceivedMessage(UETPacket* pkt) {
+    EV << "AIHPCApplication: processReceivedMessage called for packet seq=" << pkt->getSequenceNum() << " at node " << getParentModule()->getIndex() << endl;
     emit(messagesReceived, 1);
+    
+    // Record scalar directly to ensure it's captured
+    static int receivedCount = 0;
+    receivedCount++;
+    recordScalar("messagesActuallyReceived", receivedCount);
     
     // Calculate latency if we sent this message
     auto it = sentTimes.find(pkt->getSequenceNum());
@@ -150,9 +168,14 @@ void AIHPCApplication::processReceivedMessage(UETPacket* pkt) {
 
 void AIHPCApplication::initiateAllReduce() {
     // Simplified AllReduce: send to all peers
+    int myIndex = getParentModule()->isVector() ? getParentModule()->getIndex() : 0;
+    EV << "AIHPCApplication: initiateAllReduce - myIndex=" << myIndex << " jobSize=" << jobSize << endl;
     for (int i = 0; i < jobSize; i++) {
-        if (i != (getParentModule()->isVector() ? getParentModule()->getIndex() : 0)) {
+        if (i != myIndex) {
+            EV << "AIHPCApplication: Sending message to destination " << i << endl;
             sendMessage(i, messageSize, "ALLREDUCE");
+        } else {
+            EV << "AIHPCApplication: Skipping self (index " << i << ")" << endl;
         }
     }
 }
@@ -177,4 +200,12 @@ void AIHPCApplication::initiateBroadcast() {
 
 void AIHPCApplication::finish() {
     // Record final statistics
+    EV << "AIHPCApplication: finish() called for node " << getParentModule()->getIndex() << endl;
+    EV << "AIHPCApplication: sequenceNumber=" << sequenceNumber << " sentTimes.size()=" << sentTimes.size() << endl;
+    
+    // Force record statistics if we know messages were sent
+    if (sequenceNumber > 0) {
+        recordScalar("finalMessagesSent", sequenceNumber);
+        recordScalar("finalSentTimesRemaining", (double)sentTimes.size());
+    }
 }

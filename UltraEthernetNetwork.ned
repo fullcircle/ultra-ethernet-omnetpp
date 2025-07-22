@@ -39,6 +39,7 @@ module UltraEthernetHost {
         
         phy: UltraEthernetPhy {
             @display("p=200,450");
+            ethg.size = sizeof(parent.ethg);
         }
         
     connections:
@@ -54,9 +55,9 @@ module UltraEthernetHost {
         link.phyOut --> phy.linkIn;
         link.phyIn <-- phy.linkOut;
         
+        // Connect physical layer to external network gates
         for i=0..sizeof(ethg)-1 {
-            phy.ethOut[i] --> ethg[i];
-            phy.ethIn[i] <-- ethg[i];
+            phy.ethg++ <--> ethg[i];
         }
 }
 
