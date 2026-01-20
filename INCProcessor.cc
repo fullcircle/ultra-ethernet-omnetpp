@@ -1,5 +1,5 @@
 //
-// INCProcessor.cc - In-Network Computing Processor Implementation
+// INCProcessor.cc - In-Network Collectives Processor Implementation
 //
 
 #include "INCProcessor.h"

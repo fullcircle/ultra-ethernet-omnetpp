@@ -1,10 +1,10 @@
 # Ultra Ethernet OMNeT++ Simulation
 
-An OMNeT++ simulation framework for Ultra Ethernet networking technology optimized for AI/HPC workloads, featuring In-Network Computing (INC) capabilities and large-scale cluster support.
+An OMNeT++ simulation framework for Ultra Ethernet networking technology optimized for AI/HPC workloads, featuring In-Network Collectives (INC) capabilities and large-scale cluster support.
 
 ## Overview
 
-This project simulates Ultra Ethernet protocol stacks designed for high-performance AI and HPC applications. It models complete networking clusters from 1,000 to 10,000+ nodes with advanced features like packet spraying, in-network computing, and AI-optimized transport protocols.
+This project simulates Ultra Ethernet protocol stacks designed for high-performance AI and HPC applications. It models complete networking clusters from 1,000 to 10,000+ nodes with advanced features like packet spraying, in-network collectives, and AI-optimized transport protocols.
 
 ## Features
 
@@ -16,7 +16,7 @@ This project simulates Ultra Ethernet protocol stacks designed for high-performa
 - **Application Layer**: AI/HPC workload generators and communication patterns
 
 ### Advanced Capabilities
-- **In-Network Computing (INC)**: Hardware-accelerated collective operations
+- **In-Network Collectives (INC)**: Hardware-accelerated collective operations
 - **Packet Spraying**: Multi-path packet distribution for load balancing
 - **AI Transport Profiles**: Optimized for training and inference workloads
 - **Parallel Simulation**: MPI-based scaling for large clusters
@@ -88,7 +88,7 @@ Physical Layer (UltraEthernetPhy)
 
 - **UltraEthernetHost**: Complete host implementation with full protocol stack
 - **UltraEthernetSwitch**: Network switch with INC processing capabilities
-- **INCProcessor**: In-network computing engine for collective operations
+- **INCProcessor**: In-network collectives engine for collective operations
 - **AIHPCApplication**: Workload generator for AI/HPC communication patterns
 
 ## Workload Types

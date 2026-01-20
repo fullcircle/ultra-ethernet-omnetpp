@@ -42,6 +42,8 @@ packet LLRAck {
     uint32_t acknowledgedSeq;
     uint8_t ackType;  // ACK=0, NACK=1
     uint16_t pathId;
+    uint32_t destAddr;  // Destination for routing ACK back to sender
+    uint32_t srcAddr;   // Original sender that sent the ACK
 }
 
 packet INCPacket extends UETPacket {

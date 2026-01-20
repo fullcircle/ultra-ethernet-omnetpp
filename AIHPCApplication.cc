@@ -9,6 +9,8 @@ Define_Module(AIHPCApplication);
 AIHPCApplication::AIHPCApplication() {
     trafficTimer = nullptr;
     sequenceNumber = 0;
+    totalBytesReceived = 0;
+    firstPacketTime = 0;
 }
 
 AIHPCApplication::~AIHPCApplication() {
@@ -50,10 +52,16 @@ void AIHPCApplication::initialize() {
 void AIHPCApplication::handleMessage(cMessage *msg) {
     if (msg->isSelfMessage()) {
         if (msg == trafficTimer) {
-            EV << "AIHPCApplication: Traffic timer fired at " << simTime() << " for node " << getParentModule()->getIndex() << endl;
+            // Reduce debug output for large-scale simulations
+            if (jobSize <= 100) {
+                EV << "AIHPCApplication: Traffic timer fired at " << simTime() << " for node " << getParentModule()->getIndex() << endl;
+            }
             generateTraffic();
-            // Schedule next traffic generation (reduced frequency to avoid congestion)
-            scheduleAt(simTime() + 1.0, trafficTimer);
+            // Schedule next traffic generation with adaptive interval based on scale
+            double interval = 1.0;
+            if (jobSize > 1000) interval = 2.0;  // Slower for large scales
+            if (jobSize > 5000) interval = 5.0;  // Much slower for extreme scales
+            scheduleAt(simTime() + interval, trafficTimer);
         }
     } else {
         UETPacket *pkt = check_and_cast<UETPacket*>(msg);
@@ -135,7 +143,10 @@ void AIHPCApplication::sendMessage(int dest, int size, const char* type) {
     
     sentTimes[pkt->getSequenceNum()] = simTime();
     
-    EV << "AIHPCApplication: Sending packet with seq=" << pkt->getSequenceNum() << " from=" << pkt->getSrcAddr() << " to=" << pkt->getDestAddr() << endl;
+    // Reduce debug output for large-scale simulations
+    if (jobSize <= 100) {
+        EV << "AIHPCApplication: Sending packet with seq=" << pkt->getSequenceNum() << " from=" << pkt->getSrcAddr() << " to=" << pkt->getDestAddr() << endl;
+    }
     send(pkt, "transportOut");
     emit(messagesSent, 1);
     
@@ -145,7 +156,10 @@ void AIHPCApplication::sendMessage(int dest, int size, const char* type) {
 }
 
 void AIHPCApplication::processReceivedMessage(UETPacket* pkt) {
-    EV << "AIHPCApplication: processReceivedMessage called for packet seq=" << pkt->getSequenceNum() << " at node " << getParentModule()->getIndex() << endl;
+    // Reduce debug output for large-scale simulations
+    if (jobSize <= 100) {
+        EV << "AIHPCApplication: processReceivedMessage called for packet seq=" << pkt->getSequenceNum() << " at node " << getParentModule()->getIndex() << endl;
+    }
     emit(messagesReceived, 1);
     
     // Record scalar directly to ensure it's captured
@@ -161,9 +175,13 @@ void AIHPCApplication::processReceivedMessage(UETPacket* pkt) {
         sentTimes.erase(it);
     }
     
-    // Calculate throughput
-    double currentThroughput = (double)pkt->getByteLength() * 8.0 / SIMTIME_DBL(simTime());
-    emit(throughput, currentThroughput);
+    // Update throughput tracking
+    totalBytesReceived += pkt->getByteLength();
+    if (firstPacketTime == 0) {
+        firstPacketTime = simTime();
+    }
+
+    // Don't emit throughput per packet - calculate it once at the end
 }
 
 void AIHPCApplication::initiateAllReduce() {
@@ -207,5 +225,15 @@ void AIHPCApplication::finish() {
     if (sequenceNumber > 0) {
         recordScalar("finalMessagesSent", sequenceNumber);
         recordScalar("finalSentTimesRemaining", (double)sentTimes.size());
+    }
+
+    // Calculate final throughput if we received any packets
+    if (totalBytesReceived > 0 && firstPacketTime > 0) {
+        simtime_t actualDuration = simTime() - firstPacketTime;
+        if (actualDuration > 0) {
+            double finalThroughput = (double)totalBytesReceived * 8.0 / SIMTIME_DBL(actualDuration);
+            recordScalar("actualThroughput", finalThroughput);
+            emit(throughput, finalThroughput);
+        }
     }
 }

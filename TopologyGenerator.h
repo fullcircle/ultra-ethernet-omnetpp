@@ -28,6 +28,7 @@ struct NodeInfo {
     int switchPorts;
     std::vector<int> connections;
     int x, y, z;  // Position coordinates for geometric topologies
+    int partitionId;  // MPI partition assignment
 };
 
 struct LinkInfo {
@@ -46,6 +47,10 @@ protected:
     int switchRadix;
     int hostsPerSwitch;
     
+    // MPI partition configuration
+    int numPartitions;
+    bool parallelSimulation;
+    
     // Generated topology
     std::vector<NodeInfo> nodes;
     std::vector<LinkInfo> links;
@@ -61,6 +66,18 @@ protected:
     void addLink(int src, int dest, double bw = 800e9, double lat = 1e-6);
     void validateTopology();
     void exportTopology(const std::string& filename);
+    void establishConnections();  // Establish actual OMNeT++ module connections
+    
+    // MPI partition methods
+    virtual void assignPartitions();
+    void assignDragonflyPartitions();
+    void assignLeafSpinePartitions();
+    void assignMeshPartitions();
+    void assignTorusPartitions();
+    void assignBalancedPartitions();
+    void balancePartitions();
+    void optimizePartitionCommunication();
+    int getNodePartition(int nodeId);
     
 public:
     TopologyGenerator();

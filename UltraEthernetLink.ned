@@ -9,6 +9,7 @@ simple UltraEthernetLink {
         int maxRetransmissions = default(3);
         double priCompressionRatio = default(0.2);
         double linkLatency @unit(s) = default(1ns);
+        double linkSpeed @unit(bps) = default(800Gbps);
         
         // Statistics
         @signal[packetsTransmitted](type=long);

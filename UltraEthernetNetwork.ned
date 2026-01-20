@@ -11,6 +11,9 @@ module UltraEthernetHost {
         @node();
         @display("i=device/server;bgb=400,500");
         
+        // PARSIM partition support (configured via INI file)
+        int partition_id = default(0);
+        
         // Configurable parameters
         string profileType = default("AI_FULL");  // AI_BASE, AI_FULL, HPC
         double linkSpeed @unit(bps) = default(800Gbps);
@@ -67,6 +70,9 @@ module UltraEthernetSwitch {
         @node();
         @display("i=device/switch;bgb=300,200");
         
+        // PARSIM partition support (configured via INI file)
+        int partition_id = default(0);
+        
         int numPorts = default(64);
         bool incProcessingEnabled = default(true);
         double switchingLatency @unit(s) = default(100ns);
@@ -93,8 +99,8 @@ module UltraEthernetSwitch {
         for i=0..numPorts-1 {
             ports[i].fabricOut --> switchFabric.portIn[i];
             ports[i].fabricIn <-- switchFabric.portOut[i];
-            ports[i].ethOut --> ethg[i];
-            ports[i].ethIn <-- ethg[i];
+            ports[i].ethOut --> ethg$o[i];
+            ports[i].ethIn <-- ethg$i[i];
         }
         
         switchFabric.incOut --> incProcessor.fabricIn;

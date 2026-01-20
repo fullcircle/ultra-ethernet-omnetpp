@@ -1,5 +1,5 @@
 //
-// INCProcessor.h - In-Network Computing Processor
+// INCProcessor.h - In-Network Collectives Processor
 //
 
 #ifndef __INC_PROCESSOR_H

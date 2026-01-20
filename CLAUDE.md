@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an OMNeT++ simulation of Ultra Ethernet technology for AI/HPC workloads. The project simulates large-scale ethernet clusters (1K-10K nodes) with specialized features like In-Network Computing (INC), packet spraying, and AI-optimized transport protocols.
+This is an OMNeT++ simulation of Ultra Ethernet technology for AI/HPC workloads. The project simulates large-scale ethernet clusters (1K-10K nodes) with specialized features like In-Network Collectives (INC), packet spraying, and AI-optimized transport protocols.
 
 ## Build System
 
@@ -38,7 +38,7 @@ This is an OMNeT++ simulation of Ultra Ethernet technology for AI/HPC workloads.
 
 ### Key Components
 - **UltraEthernetSwitch**: Network switches with INC processing capability
-- **INCProcessor**: In-Network Computing for collective operations (AllReduce, Broadcast)
+- **INCProcessor**: In-Network Collectives for collective operations (AllReduce, Broadcast)
 - **UltraEthernetCluster**: Network topology generator (supports Dragonfly topology)
 
 ### Message Types
@@ -81,7 +81,7 @@ Use `performance_analysis.py` to process simulation results:
 ### Key Parameters
 - `linkSpeed`: 800Gbps default, configurable per link
 - `fecEnabled`: Forward Error Correction for reliability
-- `incProcessingEnabled`: Enable In-Network Computing
+- `incProcessingEnabled`: Enable In-Network Collectives
 - `packetSprayingEnabled`: Multi-path packet distribution
 - `profileType`: AI_BASE/AI_FULL/HPC transport profiles
 

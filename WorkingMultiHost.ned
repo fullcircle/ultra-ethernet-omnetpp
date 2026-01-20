@@ -16,6 +16,9 @@ network TwoHostDirect
         host2: UltraEthernetHost_Test {
             @display("p=400,150");
         }
+
+    connections:
+        host1.ethg <--> {delay = 1us; datarate = 800Gbps;} <--> host2.ethg;
 }
 
 // Multi-host simulation using multiple isolated hosts with increased jobSize

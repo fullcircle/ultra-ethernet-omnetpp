@@ -46,6 +46,10 @@ private:
     cMessage *trafficTimer;
     int sequenceNumber;
     std::map<int, simtime_t> sentTimes;
+
+    // Throughput tracking
+    long totalBytesReceived;
+    simtime_t firstPacketTime;
     
     // Workload generation
     void generateTraffic();

@@ -12,6 +12,13 @@ UltraEthernetPhy::UltraEthernetPhy() {
 
 UltraEthernetPhy::~UltraEthernetPhy() {
     cancelAndDelete(transmissionTimer);
+    
+    // Clean up any remaining packets in the transmission queue
+    while (!transmissionQueue.empty()) {
+        cPacket *pkt = transmissionQueue.front();
+        transmissionQueue.pop();
+        delete pkt;
+    }
 }
 
 void UltraEthernetPhy::initialize() {
@@ -110,11 +117,21 @@ void UltraEthernetPhy::scheduleNextTransmission() {
         cPacket *pkt = transmissionQueue.front();
         transmissionQueue.pop();
         
-        // Send on first ethernet port if available, otherwise drop
-        if (gateSize("ethg") > 0) {
-            send(pkt, "ethg$o", 0);
+        // Get the routing decision from the packet
+        UETPacket *uetPkt = dynamic_cast<UETPacket*>(pkt);
+        int targetInterface = 0;  // Default to interface 0
+        
+        if (uetPkt) {
+            targetInterface = uetPkt->getPathId();
+        }
+        
+        // Send on the specified interface if available, otherwise drop
+        if (gateSize("ethg") > targetInterface && targetInterface >= 0) {
+            send(pkt, "ethg$o", targetInterface);
         } else {
-            // No external connections, drop packet
+            // No valid interface, drop packet
+            EV_WARN << "Cannot send packet: interface " << targetInterface 
+                    << " not available (total interfaces: " << gateSize("ethg") << ")\n";
             delete pkt;
         }
         
@@ -131,8 +148,10 @@ void UltraEthernetPhy::scheduleNextTransmission() {
 
 void UltraEthernetPhy::updateLinkUtilization() {
     // Calculate and emit link utilization
-    double utilization = (double)transmissionQueue.size() / 100.0;  // Normalized
-    emit(linkUtilization, utilization);
+    // Use a maximum expected queue size for normalization (e.g., 500 packets for PHY layer)
+    double maxQueueSize = 500.0;  // Maximum expected transmission queue size
+    double utilization = std::min(1.0, (double)transmissionQueue.size() / maxQueueSize);
+    emit(linkUtilization, utilization);  // Emit as fraction (0.0 to 1.0)
 }
 
 void UltraEthernetPhy::finish() {

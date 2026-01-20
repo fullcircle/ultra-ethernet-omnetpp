@@ -6,7 +6,7 @@ simple AIHPCApplication {
     parameters:
         string workloadType = default("AI_TRAINING");  // AI_TRAINING, AI_INFERENCE, HPC_SIMULATION
         string communicationPattern = default("ALLREDUCE");  // ALLREDUCE, ALLGATHER, BROADCAST
-        int messageSize @unit(B) = default(1MB);
+        int messageSize = default(1048576);  // 1MB in bytes
         int jobSize = default(1024);
         double communicationIntensity = default(0.8);
         double trafficStartTime @unit(s) = default(1s);

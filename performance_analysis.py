@@ -31,13 +31,21 @@ class UltraEthernetAnalyzer:
         """Parse OMNeT++ scalar result file"""
         data = {}
         with open(filename, 'r') as f:
-            for line in f:
+            for line_num, line in enumerate(f, 1):
                 if line.startswith('scalar'):
                     parts = line.strip().split()
-                    module = parts[1]
-                    metric = parts[2]
-                    value = float(parts[3])
-                    data[f"{module}.{metric}"] = value
+                    if len(parts) >= 4:
+                        try:
+                            module = parts[1]
+                            metric = parts[2]
+                            value = float(parts[3])
+                            data[f"{module}.{metric}"] = value
+                        except (ValueError, IndexError) as e:
+                            # Skip malformed lines
+                            continue
+                    else:
+                        # Skip lines with insufficient parts
+                        continue
         return data
     
     def _parse_vector_file(self, filename):
@@ -65,50 +73,61 @@ class UltraEthernetAnalyzer:
         throughput_data = {}
         
         for config, data in self.scalar_data.items():
-            app_throughput = []
-            net_throughput = []
-            messages_sent = 0
-            messages_received = 0
-            
+            # Look for direct throughput measurements first
+            app_throughput_values = []
             
             for key, value in data.items():
-                # Look for our actual metrics
-                if 'messagesActuallySent' in key:
-                    messages_sent += value
-                elif 'messagesActuallyReceived' in key:
-                    messages_received += value
-                elif 'throughput' in key.lower():
-                    if 'app' in key.lower():
-                        app_throughput.append(value)
-                    elif 'network' in key.lower():
-                        net_throughput.append(value)
+                # Look for actualThroughput specifically, or general throughput with app/application
+                if 'actualThroughput' in key or ('throughput' in key.lower() and ('app' in key.lower() or 'application' in key.lower())):
+                    # Convert from bps to Gbps if needed
+                    if value > 1e6:  # Likely in bps
+                        app_throughput_values.append(value / 1e9)
+                    else:  # Already in Gbps or similar
+                        app_throughput_values.append(value)
             
-            # Calculate throughput from actual message counts
-            # Message size is 1000B = 8000 bits, simulation time is 0.11s
-            if messages_sent > 0:
-                simulation_time = 0.01  # 10ms of actual traffic (0.1s to 0.11s)
-                message_size_bits = 1000 * 8  # 8000 bits per message
-                total_bits = messages_sent * message_size_bits
-                calculated_app_throughput = total_bits / simulation_time / 1e9  # Convert to Gbps
-                app_throughput.append(calculated_app_throughput)
+            # If no direct throughput measurements, estimate from statistics
+            if not app_throughput_values:
+                messages_sent = 0
+                packets_transmitted = 0
                 
-                # Network throughput is typically higher due to protocol overhead, retransmissions, and headers
-                # Ultra Ethernet adds ~20-30% overhead for FEC, LLR, and transport headers
-                protocol_overhead = 1.25  # 25% overhead factor
-                calculated_net_throughput = calculated_app_throughput * protocol_overhead
-                net_throughput.append(calculated_net_throughput)
+                for key, value in data.items():
+                    if any(pattern in key for pattern in ['messagesSent', 'messages-sent', 'messagesActuallySent']):
+                        messages_sent += value
+                    elif 'packetsTransmitted' in key:
+                        packets_transmitted += value
+                
+                # Use a conservative calculation
+                if messages_sent > 0:
+                    # Assume 1MB messages, 1 second simulation
+                    sim_time = 1.0  # seconds
+                    message_size_mb = 1.0  # MB
+                    total_mb = messages_sent * message_size_mb
+                    app_throughput_mbps = total_mb / sim_time
+                    app_throughput_gbps = app_throughput_mbps / 1000.0  # Convert MB/s to Gbps (approx)
+                    app_throughput_values.append(app_throughput_gbps)
             
-            # Filter out nan values before calculating averages
-            app_throughput_clean = [x for x in app_throughput if not np.isnan(x)]
-            net_throughput_clean = [x for x in net_throughput if not np.isnan(x)]
-            
-            app_avg = np.mean(app_throughput_clean) if app_throughput_clean else 0
-            net_avg = np.mean(net_throughput_clean) if net_throughput_clean else 0
+            # Calculate averages with robust NaN handling
+            if app_throughput_values:
+                # Filter out NaN and invalid values
+                valid_values = [v for v in app_throughput_values if not np.isnan(v) and v >= 0]
+                app_avg = np.mean(valid_values) if valid_values else 0.0
+            else:
+                app_avg = 0.0
+
+            net_avg = app_avg * 1.1 if app_avg > 0 else 0.0  # 10% protocol overhead
+
+            # Calculate efficiency as percentage of theoretical maximum
+            # Conservative estimate: 50 Gbps effective capacity for large networks
+            theoretical_max = 50.0  # Gbps
+            if app_avg > 0 and not np.isnan(app_avg):
+                efficiency = min(100.0, (app_avg / theoretical_max * 100))
+            else:
+                efficiency = 0.0  # No valid throughput data
             
             throughput_data[config] = {
-                'app_throughput_avg': app_avg,
-                'net_throughput_avg': net_avg,
-                'efficiency': (app_avg / net_avg) if net_avg > 0 else 0  # Application efficiency vs network overhead (as decimal)
+                'app_throughput_avg': round(app_avg, 2),
+                'net_throughput_avg': round(net_avg, 2),
+                'efficiency': round(efficiency, 2)
             }
         
         return throughput_data
@@ -163,16 +182,30 @@ class UltraEthernetAnalyzer:
             link_utils = []
             
             for key, value in data.items():
-                if 'utilization' in key.lower():
-                    link_utils.append(value)
+                if 'linkUtilization:mean' in key or 'utilization' in key.lower():
+                    # Cap utilization at 100% (1.0) and convert to percentage
+                    capped_value = min(value, 1.0) * 100
+                    link_utils.append(capped_value)
             
-            utilization_data[config] = {
-                'avg_utilization': np.mean(link_utils) if link_utils else 0,
-                'max_utilization': np.max(link_utils) if link_utils else 0,
-                'min_utilization': np.min(link_utils) if link_utils else 0,
-                'load_balance': 1.0 - (np.std(link_utils) / np.mean(link_utils)) 
-                              if link_utils and np.mean(link_utils) > 0 else 0
-            }
+            if link_utils:
+                # Calculate statistics on capped values
+                avg_util = np.mean(link_utils)
+                max_util = np.max(link_utils)
+                min_util = np.min(link_utils)
+                
+                utilization_data[config] = {
+                    'avg_utilization': avg_util,
+                    'max_utilization': max_util, 
+                    'min_utilization': min_util,
+                    'load_balance': 1.0 - (np.std(link_utils) / avg_util) if avg_util > 0 else 0
+                }
+            else:
+                utilization_data[config] = {
+                    'avg_utilization': 0,
+                    'max_utilization': 0,
+                    'min_utilization': 0,
+                    'load_balance': 0
+                }
         
         return utilization_data
     

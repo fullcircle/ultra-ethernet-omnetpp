@@ -16,6 +16,13 @@ module ScalableUltraEthernetNetwork
         int switchRadix = default(64);
         int hostsPerSwitch = default(32);
         
+        // PARSIM partition support
+        int numPartitions = default(4);
+        bool parallelSimulation = default(true);
+        
+        // Calculate number of switches needed based on topology
+        int numSwitches = default(int((numNodes + hostsPerRouter - 1) / hostsPerRouter));
+        
         // Topology-specific parameters
         int numSpineSwitches = default(4);
         int hostsPerLeaf = default(32);
@@ -30,12 +37,28 @@ module ScalableUltraEthernetNetwork
         @display("bgb=800,600");
         
     submodules:
+        // Create actual host modules for traffic generation
+        hosts[numNodes]: UltraEthernetHost {
+            @display("p=100,100,m,20,100,100");
+        }
+        
+        // Create switch modules based on topology requirements
+        switches[numSwitches]: UltraEthernetSwitch {
+            numPorts = parent.switchRadix;
+            @display("p=300,300,m,10,80,80");
+        }
+        
+        // Topology generator for connection setup
         topologyGenerator: <topologyType + "Topology"> like TopologyGenerator {
             parameters:
                 numNodes = parent.numNodes;
                 switchRadix = parent.switchRadix;
                 hostsPerSwitch = parent.hostsPerSwitch;
                 topologyType = parent.topologyType;
+                
+                // PARSIM partition parameters
+                numPartitions = parent.numPartitions;
+                parallelSimulation = parent.parallelSimulation;
                 
                 // Leaf-Spine specific
                 numSpineSwitches = parent.numSpineSwitches;
@@ -56,6 +79,9 @@ module ScalableUltraEthernetNetwork
                 
                 @display("p=50,50;i=block/cogwheel");
         }
+        
+    connections allowunconnected:
+        // Connections will be established dynamically by topology generator
 }
 
 //=============================================================================

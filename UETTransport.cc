@@ -21,6 +21,12 @@ UETTransport::~UETTransport() {
     for (auto& entry : retransmissionBuffer) {
         delete entry.second.packet;
     }
+    // Clean up per-source reorder buffers
+    for (auto& srcBuffer : reorderBufferPerSource) {
+        for (auto& pkt : srcBuffer.second) {
+            delete pkt.second;
+        }
+    }
 }
 
 void UETTransport::initialize() {
@@ -112,6 +118,41 @@ void UETTransport::processFromNetwork(UETPacket *pkt) {
     
     // Handle reordering if enabled
     if (reorderingEnabled && profileType == AI_FULL) {
+        int srcAddr = pkt->getSrcAddr();
+        
+        // Initialize expected sequence for this source if not seen before
+        if (expectedSequencePerSource.find(srcAddr) == expectedSequencePerSource.end()) {
+            expectedSequencePerSource[srcAddr] = pkt->getSequenceNum();  // Start from first seen sequence
+        }
+        
+        int expectedSeq = expectedSequencePerSource[srcAddr];
+        
+        if (pkt->getSequenceNum() == expectedSeq) {
+            // In-order packet for this source
+            processInOrderPacket(pkt);
+            expectedSequencePerSource[srcAddr]++;
+            
+            // Check reorder buffer for next packets from this source
+            processReorderBufferForSource(srcAddr);
+            
+            // Send acknowledgment for in-order packet
+            sendAcknowledgment(seqNum);
+        } else if (pkt->getSequenceNum() > expectedSeq) {
+            // Out-of-order packet - buffer it per source
+            if (reorderBufferPerSource[srcAddr].size() < maxReorderBuffer) {
+                reorderBufferPerSource[srcAddr][pkt->getSequenceNum()] = pkt;
+                // Send acknowledgment for out-of-order packet too
+                sendAcknowledgment(seqNum);
+            } else {
+                // Buffer full for this source, drop packet
+                delete pkt;
+            }
+        } else {
+            // Duplicate packet from this source, drop it
+            sendAcknowledgment(seqNum);
+            delete pkt;
+        }
+    } else if (false && reorderingEnabled && profileType == AI_FULL) {
         if (pkt->getSequenceNum() == expectedSequenceNum) {
             // In-order packet
             processInOrderPacket(pkt);
@@ -170,6 +211,24 @@ void UETTransport::processReorderBuffer() {
         reorderBuffer.erase(it);
         expectedSequenceNum++;
         it = reorderBuffer.find(expectedSequenceNum);
+    }
+}
+
+void UETTransport::processReorderBufferForSource(int srcAddr) {
+    // Process buffered packets for this specific source
+    if (reorderBufferPerSource.find(srcAddr) == reorderBufferPerSource.end()) {
+        return;  // No buffer for this source
+    }
+    
+    int expectedSeq = expectedSequencePerSource[srcAddr];
+    auto it = reorderBufferPerSource[srcAddr].find(expectedSeq);
+    
+    while (it != reorderBufferPerSource[srcAddr].end()) {
+        processInOrderPacket(it->second);
+        reorderBufferPerSource[srcAddr].erase(it);
+        expectedSequencePerSource[srcAddr]++;
+        expectedSeq = expectedSequencePerSource[srcAddr];
+        it = reorderBufferPerSource[srcAddr].find(expectedSeq);
     }
 }
 

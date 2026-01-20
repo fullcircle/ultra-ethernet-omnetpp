@@ -1,13 +1,13 @@
 #
-# OMNeT++/OMNEST Makefile for ultraethernet_sim
+# OMNeT++/OMNEST Makefile for UEC
 #
 # This file was generated with the command:
-#  opp_makemake -f --deep -o ultraethernet_sim -I/mnt/d/omnetpp-6.2.0/inet4.5/src -L/mnt/d/omnetpp-6.2.0/inet4.5/src -lINET_dbg
+#  opp_makemake -f --deep
 #
 
 # Name of target to be created (-o option)
 TARGET_DIR = .
-TARGET_NAME = ultraethernet_sim$(D)
+TARGET_NAME = UEC$(D)
 TARGET = $(TARGET_NAME)$(EXE_SUFFIX)
 TARGET_FILES = $(TARGET_DIR)/$(TARGET)
 
@@ -17,13 +17,19 @@ USERIF_LIBS = $(ALL_ENV_LIBS) # that is, $(QTENV_LIBS) $(CMDENV_LIBS)
 #USERIF_LIBS = $(QTENV_LIBS)
 
 # C++ include paths (with -I)
-INCLUDE_PATH = -I/mnt/d/omnetpp-6.2.0/inet4.5/src
+INCLUDE_PATH =
 
 # Additional object and library files to link with
 EXTRA_OBJS =
 
 # Additional libraries (-L, -l options)
-LIBS = $(LDFLAG_LIBPATH)/mnt/d/omnetpp-6.2.0/inet4.5/src  -lINET_dbg
+LIBS =
+
+# MPI Support
+MPI_CFLAGS = $(shell mpic++ --showme:compile)
+MPI_LIBS = $(shell mpic++ --showme:link)
+CFLAGS_EXTRA += $(MPI_CFLAGS) -DWITH_MPI
+LDFLAGS_EXTRA += $(MPI_LIBS)
 
 # Output directory
 PROJECT_OUTPUT_DIR = ../out
@@ -37,6 +43,7 @@ OBJS = \
     $O/PerformanceAnalyzer.o \
     $O/SwitchFabric.o \
     $O/SwitchPort.o \
+    $O/TopologyGenerator.o \
     $O/UETTransport.o \
     $O/UltraEthernetIP.o \
     $O/UltraEthernetLink.o \
@@ -68,9 +75,6 @@ include $(CONFIGFILE)
 
 # Simulation kernel and user interface libraries
 OMNETPP_LIBS = $(OPPMAIN_LIB) $(USERIF_LIBS) $(KERNEL_LIBS) $(SYS_LIBS)
-ifneq ($(PLATFORM),win32)
-LIBS += -Wl,-rpath,$(abspath /mnt/d/omnetpp-6.2.0/inet4.5/src)
-endif
 
 COPTS = $(CFLAGS) $(IMPORT_DEFINES)  $(INCLUDE_PATH) -I$(OMNETPP_INCL_DIR)
 MSGCOPTS = $(INCLUDE_PATH)
@@ -139,76 +143,78 @@ cleanall:
 	$(Q)$(CLEANALL_COMMAND)
 	$(Q)-rm -rf $(PROJECT_OUTPUT_DIR)
 
-# Additional targets for scalable testing
-run-multi: 
-	@echo "Running working multi-host tests..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c TwoHost_Direct -f working_multi_test.ini
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_4 -f working_multi_test.ini
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_16 -f working_multi_test.ini
-
-run-working:
-	@echo "Running verified working test..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c General -f test_full.ini --sim-time-limit=10s
-
-run-stress:
-	@echo "Running stress test..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_Stress -f working_multi_test.ini
-
-run-64:
-	@echo "Running 64-host large scale test..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_64 -f large_scale_test.ini
-
-run-100:
-	@echo "Running 100-host extreme scale test..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_100 -f large_scale_test.ini
-
-run-massive:
-	@echo "Running 256-host massive scale test..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c MultiHost_256 -f large_scale_test.ini
-
-# Topology-specific 1000-host tests
-run-leafspine-1000:
-	@echo "Running 1000-host Leaf-Spine topology..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c LeafSpine_1000 -f large_scale_test.ini
-
-run-dragonfly-1000:
-	@echo "Running 1000-host Dragonfly topology..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c Dragonfly_1000 -f large_scale_test.ini
-
-run-mesh-1000:
-	@echo "Running 1000-host Mesh topology..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c Mesh_1000 -f large_scale_test.ini
-
-run-torus-1000:
-	@echo "Running 1000-host Torus topology..."
-	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./ultraethernet_sim_dbg -u Cmdenv -c Torus_1000 -f large_scale_test.ini
-
-run-all-topologies-1000:
-	@echo "Running all 1000-host topology tests..."
-	$(MAKE) run-leafspine-1000
-	$(MAKE) run-dragonfly-1000
-	$(MAKE) run-mesh-1000
-	$(MAKE) run-torus-1000
-
 help:
 	@echo "$$HELP_SYNOPSYS"
 	@echo "$$HELP_TARGETS"
-	@echo "Additional targets:"
-	@echo "  run-multi         Run working multi-host tests (2, 4, 16 hosts)"
-	@echo "  run-working       Run verified single host test"
-	@echo "  run-stress        Run stress test with high traffic"
-	@echo "  run-64            Run 64-host large scale test"
-	@echo "  run-100           Run 100-host extreme scale test"
-	@echo "  run-massive       Run 256-host massive scale test"
-	@echo ""
-	@echo "Topology-specific 1000-host tests:"
-	@echo "  run-leafspine-1000    Run 1000-host Leaf-Spine topology"
-	@echo "  run-dragonfly-1000    Run 1000-host Dragonfly topology"
-	@echo "  run-mesh-1000         Run 1000-host Mesh topology"
-	@echo "  run-torus-1000        Run 1000-host Torus topology"
-	@echo "  run-all-topologies-1000  Run all 1000-host topology tests"
 	@echo "$$HELP_VARIABLES"
 	@echo "$$HELP_EXAMPLES"
+
+# Custom simulation targets
+run-dragonfly-1000:
+	@echo "Running 1000-host Dragonfly topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./$(TARGET) -u Cmdenv -c Dragonfly_1000 -f large_scale_test.ini
+
+run-leafspine-1000:
+	@echo "Running 1000-host Leaf-Spine topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./$(TARGET) -u Cmdenv -c LeafSpine_1000 -f large_scale_test.ini
+
+run-mesh-1000:
+	@echo "Running 1000-host Mesh topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./$(TARGET) -u Cmdenv -c Mesh_1000 -f large_scale_test.ini
+
+run-torus-1000:
+	@echo "Running 1000-host Torus topology..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./$(TARGET) -u Cmdenv -c Torus_1000 -f large_scale_test.ini
+
+# MPI Parallel simulation targets
+run-parallel-dragonfly-1000:
+	@echo "Running 1000-host Dragonfly topology with MPI parallelization (8 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 8 ./$(TARGET) -u Cmdenv -c Dragonfly_1000 -f large_scale_test.ini
+
+run-parallel-leafspine-1000:
+	@echo "Running 1000-host Leaf-Spine topology with MPI parallelization (8 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 8 ./$(TARGET) -u Cmdenv -c LeafSpine_1000 -f large_scale_test.ini
+
+run-parallel-mesh-1000:
+	@echo "Running 1000-host Mesh topology with MPI parallelization (8 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 8 ./$(TARGET) -u Cmdenv -c Mesh_1000 -f large_scale_test.ini
+
+run-parallel-torus-1000:
+	@echo "Running 1000-host Torus topology with MPI parallelization (8 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 8 ./$(TARGET) -u Cmdenv -c Torus_1000 -f large_scale_test.ini
+
+# Extreme scale (10K hosts) with MPI
+run-parallel-10k-leafspine:
+	@echo "Running 10K-host Leaf-Spine simulation with MPI parallelization (16 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 16 ./$(TARGET) -u Cmdenv -c LeafSpine_10K -f large_scale_test.ini
+
+run-parallel-10k-dragonfly:
+	@echo "Running 10K-host Dragonfly simulation with MPI parallelization (16 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 16 ./$(TARGET) -u Cmdenv -c Dragonfly_10K -f large_scale_test.ini
+
+# Optimized large-scale traffic test targets
+run-largescale-1k:
+	@echo "Running optimized 1K-host large-scale traffic simulation..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./$(TARGET) -u Cmdenv -c LargeScaleTest_1K -f large_scale_test.ini
+
+run-largescale-5k:
+	@echo "Running optimized 5K-host extreme-scale traffic simulation..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && ./$(TARGET) -u Cmdenv -c LargeScaleTest_5K -f large_scale_test.ini
+
+# MPI-enabled large-scale tests
+run-largescale-1k-mpi:
+	@echo "Running 1K-host simulation with distributed MPI (4 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 4 ./$(TARGET) -u Cmdenv -c LargeScaleTest_1K_PARSIM -f large_scale_1k_parsim.ini
+
+run-largescale-5k-mpi:
+	@echo "Running 5K-host simulation with distributed MPI (8 processes)..."
+	export PATH=$$PATH:/mnt/d/omnetpp-6.2.0/bin && mpirun -np 8 ./$(TARGET) -u Cmdenv -c LargeScaleTest_5K_PARSIM -f large_scale_5k_parsim.ini
+
+run-parallel-10k: run-parallel-10k-dragonfly
+
+run-parallel: run-parallel-dragonfly-1000
+
+.PHONY: run-dragonfly-1000 run-leafspine-1000 run-mesh-1000 run-torus-1000 run-parallel-dragonfly-1000 run-parallel-leafspine-1000 run-parallel-mesh-1000 run-parallel-torus-1000 run-parallel-10k-leafspine run-parallel-10k-dragonfly run-parallel-10k run-parallel run-largescale-1k run-largescale-5k run-largescale-1k-mpi run-largescale-5k-mpi
 
 # include all dependencies
 -include $(OBJS:%=%.d) $(MSGFILES:%.msg=$O/%_m.h.d)

@@ -8,9 +8,36 @@
 #include <omnetpp.h>
 #include <map>
 #include <vector>
+#include <string>
 #include "UltraEthernetMsg_m.h"
 
 using namespace omnetpp;
+
+enum TopoType {
+    TOPO_DRAGONFLY,
+    TOPO_LEAFSPINE,
+    TOPO_MESH,
+    TOPO_STAR,
+    TOPO_UNKNOWN
+};
+
+struct TopoParams {
+    // Dragonfly parameters
+    int dragonflyHostsPerRouter = 8;
+    int dragonflyRoutersPerGroup = 8;
+
+    // Leaf-Spine parameters
+    int leafSpineHostsPerLeaf = 32;
+    int leafSpineNumSpines = 8;
+
+    // Mesh parameters
+    int meshHostsPerSwitch = 32;
+    int meshDegree = 8;
+    int meshDimensions = 2;
+
+    // Star parameters (minimal)
+    int starNumHosts = 4;
+};
 
 struct RoutingEntry {
     int destAddr;
@@ -37,11 +64,21 @@ private:
     // Internal state
     cMessage *routingTimer;
     std::map<int, RoutingEntry> routingTable;
-    
+
+    // Topology detection and parameters
+    TopoType detectedTopology;
+    TopoParams topoParams;
+
     // Routing functions
     void initializeRoutingTable();
     void updateRoutingTable();
     bool routePacket(UETPacket *pkt);
+    int getNetworkSize();
+    TopoType detectTopology();
+    void loadTopologyParameters();
+    std::vector<int> calculateNextHops(int src, int dest);
+    int mapInterfaceToGate(int logicalInterface);
+    int calculateNextHopInterface(int src, int dest, int networkSize);
     
     // Message processing
     void processFromTransport(UETPacket *pkt);

@@ -51,10 +51,14 @@ private:
     // Internal state
     cMessage *rdmaTimer;
     int nextSequenceNum;
-    int expectedSequenceNum;
+    int expectedSequenceNum;  // Keep for backward compatibility
+    
+    // Per-source tracking for proper multi-stream support
+    std::map<int, int> expectedSequencePerSource;  // srcAddr -> expectedSeq
+    std::map<int, std::map<int, UETPacket*>> reorderBufferPerSource;  // srcAddr -> {seq -> packet}
     
     // Buffers
-    std::map<int, UETPacket*> reorderBuffer;
+    std::map<int, UETPacket*> reorderBuffer;  // Keep for backward compatibility
     std::map<int, RetransmissionEntry> retransmissionBuffer;
     
     // Message processing
@@ -62,6 +66,7 @@ private:
     void processFromNetwork(UETPacket *pkt);
     void processInOrderPacket(UETPacket *pkt);
     void processReorderBuffer();
+    void processReorderBufferForSource(int srcAddr);
     void processAcknowledgment(UETPacket *ack);
     
     // RDMA operations

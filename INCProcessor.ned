@@ -1,5 +1,5 @@
 //
-// INCProcessor.ned - In-Network Computing Processor
+// INCProcessor.ned - In-Network Collectives Processor
 //
 
 simple INCProcessor {
@@ -7,7 +7,7 @@ simple INCProcessor {
         bool enabled = default(true);
         double processingLatency @unit(s) = default(100ns);
         int maxConcurrentOperations = default(16);
-        double bufferSize @unit(B) = default(1MB);
+        int bufferSize = default(1048576);  // 1MB in bytes
         
         // Statistics
         @signal[operationsProcessed](type=long);
