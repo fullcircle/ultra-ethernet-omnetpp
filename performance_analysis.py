@@ -116,11 +116,13 @@ class UltraEthernetAnalyzer:
 
             net_avg = app_avg * 1.1 if app_avg > 0 else 0.0  # 10% protocol overhead
 
-            # Calculate efficiency as percentage of theoretical maximum
-            # Conservative estimate: 50 Gbps effective capacity for large networks
-            theoretical_max = 50.0  # Gbps
+            # Calculate efficiency as fraction of theoretical maximum
+            # For star topology with central switch, per-node throughput is limited
+            # by switch bisection bandwidth / num_nodes. Using link speed / 100 as estimate.
+            theoretical_max = 8.0  # Gbps per node (800 Gbps / 100 nodes)
             if app_avg > 0 and not np.isnan(app_avg):
-                efficiency = min(100.0, (app_avg / theoretical_max * 100))
+                # Store as decimal (0.0 to 1.0), .2% format will convert to percentage
+                efficiency = min(1.0, app_avg / theoretical_max)
             else:
                 efficiency = 0.0  # No valid throughput data
             
